@@ -7,14 +7,20 @@ using f = float;
 #define pb push_back
 int x[4] = {0, -1, 0, 1};
 int y[4] = {1, 0, -1, 0};
+map<pair<int, int>, pair<int, int>>parent;
 
-void markdist(vector<vector<char>> &v, vector<vector<int>> &mdist, vector<vector<bool>> &vis, int r, int c)
+void Mmarkdist(vector<vector<char>> &v, vector<vector<int>> &mdist, vector<vector<bool>> &vis, vector<pair<int, int>> mplaces)
 {
-    pair<int, int> src = make_pair(r, c);
     queue<pair<int, int>> q;
-    q.push(src);
-    mdist[r][c] = 0;
-    vis[r][c] = true;
+    for (auto i : mplaces)
+    {
+        q.push(i);
+        int r = i.ff;
+        int c = i.ss;
+        mdist[r][c] = 0;
+        vis[r][c] = true;
+    }
+
     int a, b;
     int level = 0;
     while (!q.empty())
@@ -44,6 +50,44 @@ void markdist(vector<vector<char>> &v, vector<vector<int>> &mdist, vector<vector
         }
     }
 }
+
+void markdist(vector<vector<char>> &v, vector<vector<int>> &mdist, vector<vector<bool>> &vis, int r, int c)
+{
+    pair<int, int> src = make_pair(r, c);
+    queue<pair<int, int>> q;
+    q.push(src);
+    mdist[r][c] = 0;
+    vis[r][c] = true;
+    int a, b;
+    int level = 0;
+    while (!q.empty())
+    {
+        int len = q.size();
+        level++;
+        for (int i = 0; i < len; i++)
+        {
+            pair<int, int> curr = q.front();
+            q.pop();
+            mdist[curr.ff][curr.ss] = min(level - 1, mdist[curr.ff][curr.ss]);
+            for (int j = 0; j < 4; j++)
+            {
+                a = curr.ff + x[j];
+                b = curr.ss + y[j];
+                if (a >= 0 and a<v.size() and b >= 0 and b < v[0].size() and !vis[a][b])
+                {
+                    if (v[a][b] != '#')
+                    {
+                        vis[a][b] = true;
+                        pair<int, int>temp = make_pair(a, b);
+                        parent[temp] = curr;
+                        q.push(temp);
+                    }
+                }
+            }
+
+        }
+    }
+}
 int main()
 {
     ios::sync_with_stdio(0);
@@ -59,11 +103,14 @@ int main()
     vector<vector<int>> adist(n, vector<int>(m, 1001));
     vector<vector<int>> ans(n, vector<int>(m));
     pair<int, int> start;
+    bool dotexi=false;
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < m; j++)
         {
             cin >> v[i][j];
+            if(v[i][j]=='.')
+                dotexi=true;
             if (v[i][j] == '#')
             {
                 mdist[i][j] = 1001;
@@ -75,19 +122,29 @@ int main()
             }
         }
     }
+    if(start.ff==n-1 or start.ss==m-1)
+    {
+        cout<<"YES"<<endl;
+        cout<<0;
+        exit(0);
+    }
+    vector<pair<int, int>>mplaces;
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < m; j++)
         {
             if (v[i][j] == 'M')
             {
-                vector<vector<bool>> vis(n, vector<bool>(m, false));
-                markdist(v, mdist, vis, i, j);
+                pair<int, int>mtemp = make_pair(i, j);
+                mplaces.pb(mtemp);
             }
         }
     }
     vector<vector<bool>> vis(n, vector<bool>(m, false));
-    markdist(v, adist, vis, start.ff, start.ss);
+    Mmarkdist(v, mdist, vis, mplaces);
+    vector<vector<bool>> vis2(n, vector<bool>(m, false));
+    markdist(v, adist, vis2, start.ff, start.ss);
+
 
     for (int i = 0; i < n; i++)
     {
@@ -96,6 +153,7 @@ int main()
             ans[i][j] = adist[i][j] - mdist[i][j];
         }
     }
+
     bool possible = false, btfound = false;
     vector<char>bt;
     for (int i = 0; i < n; i++)
@@ -107,57 +165,55 @@ int main()
                 if (ans[i][j] < 0)
                 {
                     possible = true;
-                    int sv = ans[i][j];
-                    int row = i; int col = j;
+                    pair<int, int>par = make_pair(i, j);
+                    pair<int, int>childcurr;
                     char c;
-                    vector<vector<bool>> visbt(n, vector<bool>(m, false));
-
                     while (true)
                     {
-                        for (int k = 0; k < 4; k++)
-                        {
-                            int m = x[k];
-                            int n = y[k];
-                            visbt[row][col] = true;
-                            // cout<<k<<endl;
-                            if (m == 0 and n == 1)
-                                c = 'R';
-                            if (m == -1 and n == 0)
-                                c = 'D';
-                            if (m == 0 and n == -1)
-                                c = 'L';
-                            if (m == 1 and n == 0)
-                                c = 'U';
-                            if (ans[row + m][row + n] == (ans[row][col] - 1) and !visbt[row + m][col + n])
-                            {
-                                //cout << ans[row + m][col + n] << endl;
-                                row = row + m; col = col + n;
-                                bt.pb(c);
-                            }
-                            if (ans[row][col] == 0)
-                            {
-                                btfound = true;
-                                break;
-                            }
-                        }
-                        if (btfound)break;
+                        childcurr = par;
+                        par = parent[par];
+                        int m = par.ff - childcurr.ff;
+                        int n = par.ss - childcurr.ss;
+
+                        if (m == 0 and n == 1)
+                            c = 'L';
+                        if (m == -1 and n == 0)
+                            c = 'D';
+                        if (m == 0 and n == -1)
+                            c = 'R';
+                        if (m == 1 and n == 0)
+                            c = 'U';
+
+                        bt.pb(c);
+
+                        if(par==start)
+                            break;
                     }
-                    break;
                 }
             }
         }
         if (possible)break;
     }
-    if (possible)
+ 
+    if(n==1 and m==1)
+    {
+        cout<<"YES"<<endl;
+        cout<<0;
+        exit(0);
+    }
+
+    if (n>1 and m>1 and possible)
     {
         cout << "YES" << endl;
         cout << bt.size() << endl;
-        reverse(bt.begin(), bt.end())
+        reverse(bt.begin(), bt.end());
         for (auto i : bt)
-            cout << i << " ";
+            cout << i;
     }
     else
         cout << "NO";
+
+
 
 }
 
