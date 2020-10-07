@@ -1,0 +1,164 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long int;
+using f = float;
+#define ff first
+#define ss second
+#define pb push_back
+int x[4] = {0, -1, 0, 1};
+int y[4] = {1, 0, -1, 0};
+
+void markdist(vector<vector<char>> &v, vector<vector<int>> &mdist, vector<vector<bool>> &vis, int r, int c)
+{
+    pair<int, int> src = make_pair(r, c);
+    queue<pair<int, int>> q;
+    q.push(src);
+    mdist[r][c] = 0;
+    vis[r][c] = true;
+    int a, b;
+    int level = 0;
+    while (!q.empty())
+    {
+        int len = q.size();
+        level++;
+        for (int i = 0; i < len; i++)
+        {
+            pair<int, int> curr = q.front();
+            q.pop();
+            mdist[curr.ff][curr.ss] = min(level - 1, mdist[curr.ff][curr.ss]);
+            for (int j = 0; j < 4; j++)
+            {
+                a = curr.ff + x[j];
+                b = curr.ss + y[j];
+                if (a >= 0 and a<v.size() and b >= 0 and b < v[0].size() and !vis[a][b])
+                {
+                    if (v[a][b] != '#')
+                    {
+                        vis[a][b] = true;
+                        pair<int, int>temp = make_pair(a, b);
+                        q.push(temp);
+                    }
+                }
+            }
+
+        }
+    }
+}
+int main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    int n, m;
+    cin >> n >> m;
+    vector<vector<char>> v(n, vector<char>(m));
+    vector<vector<int>> mdist(n, vector<int>(m, 1001));
+    vector<vector<int>> adist(n, vector<int>(m, 1001));
+    vector<vector<int>> ans(n, vector<int>(m));
+    pair<int, int> start;
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            cin >> v[i][j];
+            if (v[i][j] == '#')
+            {
+                mdist[i][j] = 1001;
+                adist[i][j] = 1001;
+            }
+            if (v[i][j] == 'A')
+            {
+                start = make_pair(i, j);
+            }
+        }
+    }
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            if (v[i][j] == 'M')
+            {
+                vector<vector<bool>> vis(n, vector<bool>(m, false));
+                markdist(v, mdist, vis, i, j);
+            }
+        }
+    }
+    vector<vector<bool>> vis(n, vector<bool>(m, false));
+    markdist(v, adist, vis, start.ff, start.ss);
+
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            ans[i][j] = adist[i][j] - mdist[i][j];
+        }
+    }
+    bool possible = false, btfound = false;
+    vector<char>bt;
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            if (i == 0 or i == n - 1 or j == 0 or j == m - 1)
+            {
+                if (ans[i][j] < 0)
+                {
+                    possible = true;
+                    int sv = ans[i][j];
+                    int row = i; int col = j;
+                    char c;
+                    vector<vector<bool>> visbt(n, vector<bool>(m, false));
+
+                    while (true)
+                    {
+                        for (int k = 0; k < 4; k++)
+                        {
+                            int m = x[k];
+                            int n = y[k];
+                            visbt[row][col] = true;
+                            // cout<<k<<endl;
+                            if (m == 0 and n == 1)
+                                c = 'R';
+                            if (m == -1 and n == 0)
+                                c = 'D';
+                            if (m == 0 and n == -1)
+                                c = 'L';
+                            if (m == 1 and n == 0)
+                                c = 'U';
+                            if (ans[row + m][row + n] == (ans[row][col] - 1) and !visbt[row + m][col + n])
+                            {
+                                //cout << ans[row + m][col + n] << endl;
+                                row = row + m; col = col + n;
+                                bt.pb(c);
+                            }
+                            if (ans[row][col] == 0)
+                            {
+                                btfound = true;
+                                break;
+                            }
+                        }
+                        if (btfound)break;
+                    }
+                    break;
+                }
+            }
+        }
+        if (possible)break;
+    }
+    if (possible)
+    {
+        cout << "YES" << endl;
+        cout << bt.size() << endl;
+        reverse(bt.begin(), bt.end())
+        for (auto i : bt)
+            cout << i << " ";
+    }
+    else
+        cout << "NO";
+
+}
+
+
